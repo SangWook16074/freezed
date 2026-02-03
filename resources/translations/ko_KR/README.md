@@ -649,6 +649,52 @@ abstract class Person with _$Person {
 }
 ```
 
+### Union Types에서 Mixin 및 Interface 사용하기
+
+Union Type 클래스는 `@implements` 또는 `@with` decarator를 사용하여 `Mixin` 또는 `Interface`를 구현할 수 있습니다. 아래 예제에서는 `City` 클래스가 `GeographicArea` 추상 클래스를 구현합니다.
+
+```dart
+abstract class GeographicArea {
+  int get population;
+  String get name;
+}
+
+@freezed
+sealed class Example with _$Example {
+  const factory Example.person(String name, int age) = Person;
+
+  @Implements<GeographicArea>()
+  const factory Example.city(String name, int population) = City;
+}
+```
+
+이 방법은 제네릭 클래스, 예를 들어 `AdministrativeArea<House>`를 구현하는 경우에도 동작합니다. 그러나 `AdministrativeArea<T>`처럼 제네릭 타입을 받는 클래스일 때는 문제가 발생합니다. 이 경우에는 `freezed`가 올바른 코드를 생성하는 것처럼 보이지만, Dart 컴파일 과정에서 `Load` 에러가 발생합니다. 따라서 `@Implements.fromSring` 또는 `@With.fromString` decorator를 사용해야 합니다.
+
+```dart
+abstract class GeographicArea {}
+abstract class House {}
+abstract class Shop {}
+abstract class AdministrativeArea<T> {}
+
+@freezed
+sealed class Example<T> with _$Example<T> {
+  const factory Example.person(String name, int age) = Person<T>;
+
+  @With.fromString('AdministrativeArea<T>')
+  const factory Example.street(String name) = Street<T>;
+
+  @With<House>()
+  @Implements<Shop>()
+  @Implements<GeographicArea>()
+  @Implements.fromString('AdministrativeArea<T>')
+  const factory Example.city(String name, int population) = City<T>;
+}
+```
+
+**Note**: 인터페이스를 완벽하게 준수하는지 확인해야 합니다. 만약 인터페이스가 `method`나 `getter`를 정의하지 않고, `filed`만을 정의한다면, Union Type의 생성자에서 이를 초기화해야 합니다. 반면에 `method`, `getter`를 정의한다면 반드시 이를 구현해야합니다. [모델에 getters 와 메서드 추가하기](#모델에-getters와-메서드-추가하기)를 참고하세요.
+
+**Note**: `freezed` 클래스에는 `@With` / `@Implements`를 사용할 수 없습니다. `extension`을 사용하거나 직접 구현하세요.
+
 ## FromJson/ToJson
 
 [Freezed]는 일반적인 `fromJson`/`toJson`을 직접 생성하지 않지만, [json_serializable]이 무엇인지는 알고 있습니다.
